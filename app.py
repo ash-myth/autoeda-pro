@@ -59,7 +59,7 @@ st.markdown("### Try Sample Dataset")
 
 sample = st.selectbox(
     "Load Example Dataset",
-    ["None","Titanic","House Prices","NBA"]
+    ["None", "Titanic", "Housing", "NBA"]
 )
 
 if sample == "Titanic":
@@ -68,7 +68,7 @@ if sample == "Titanic":
     )
     uploaded = type("obj", (object,), {"name": "titanic.csv"})()
 
-elif sample == "House Prices":
+elif sample == "Housing":
     df = pd.read_csv(
         "https://raw.githubusercontent.com/ageron/handson-ml/master/datasets/housing/housing.csv"
     )
@@ -76,7 +76,7 @@ elif sample == "House Prices":
 
 elif sample == "NBA":
     df = pd.read_csv(
-        "https://raw.githubusercontent.com/justmarkham/pandas-videos/master/data/nba.csv"
+        "https://raw.githubusercontent.com/plotly/datasets/master/nba_2013.csv"
     )
     uploaded = type("obj", (object,), {"name": "nba.csv"})()
 uploaded = st.file_uploader(
