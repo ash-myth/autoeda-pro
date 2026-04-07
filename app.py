@@ -55,35 +55,38 @@ st.markdown("""
   </span>
 </div>
 """, unsafe_allow_html=True)
-st.markdown("### Try Sample Dataset")
+st.markdown("### Select Data Source")
 
-sample = st.selectbox(
-    "Load Example Dataset",
-    ["None", "Titanic", "Housing", "NBA"]
+data_source = st.radio(
+    "Choose input method",
+    ["Upload CSV", "Use Sample Dataset"]
 )
+if data_source == "Upload CSV":
 
-if sample == "Titanic":
-    df = pd.read_csv(
-        "https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv"
+    uploaded = st.file_uploader(
+        "Upload a CSV dataset",
+        type=["csv"]
     )
-    uploaded = type("obj", (object,), {"name": "titanic.csv"})()
 
-elif sample == "Housing":
-    df = pd.read_csv(
-        "https://raw.githubusercontent.com/ageron/handson-ml/master/datasets/housing/housing.csv"
+    if uploaded:
+        df = pd.read_csv(uploaded)
+else:
+    sample = st.selectbox(
+        "Choose Sample Dataset",
+        ["None", "Titanic", "House Prices", "Heart Disease"]
     )
-    uploaded = type("obj", (object,), {"name": "housing.csv"})()
 
-elif sample == "NBA":
-    df = pd.read_csv(
-        "https://raw.githubusercontent.com/plotly/datasets/master/nba_2013.csv"
-    )
-    uploaded = type("obj", (object,), {"name": "nba.csv"})()
-uploaded = st.file_uploader(
-    "Upload a CSV dataset",
-    type=["csv"],
-    help="Any CSV — sales, health, finance, environmental, sports…"
-)
+    if sample == "Titanic":
+        df = pd.read_csv("samples/Titanic-Dataset.csv")
+        uploaded = type("obj", (object,), {"name": "Titanic-Dataset.csv"})()
+
+    elif sample == "House Prices":
+        df = pd.read_csv("samples/Housing.csv")
+        uploaded = type("obj", (object,), {"name": "Housing.csv"})()
+
+    elif sample == "Heart Disease":
+        df = pd.read_csv("samples/heart_dataset.csv")
+        uploaded = type("obj", (object,), {"name": "heart_dataset.csv"})()
 
 if uploaded is None:
     st.markdown("""
