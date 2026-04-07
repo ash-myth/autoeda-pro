@@ -14,8 +14,7 @@ from report import generate_pdf_report
 st.set_page_config(
     page_title="AutoEDA Pro",
     page_icon="⌗",
-    layout="wide",
-    initial_sidebar_state="collapsed"
+    layout="wide"
 )
 st.markdown("""
 <style>
