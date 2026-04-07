@@ -11,7 +11,6 @@ from io import BytesIO
 from analysis import run_eda
 from automl import run_automl
 from report import generate_pdf_report
-from insights import generate_ai_insights
 st.set_page_config(
     page_title="AutoEDA Pro",
     page_icon="⌗",
