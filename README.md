@@ -2,7 +2,7 @@
 
 **Automated Exploratory Data Analysis & Machine Learning Platform**
 
-Upload any CSV → get full statistical profiling, AutoML model comparison, feature importance, correlation analysis, and Claude-powered AI insights — in seconds.
+Upload any CSV → get full statistical profiling, AutoML model comparison, feature importance, correlation analysis — in seconds.
 
 ---
 
@@ -15,7 +15,7 @@ Upload any CSV → get full statistical profiling, AutoML model comparison, feat
 - **AutoML** — trains 5 models (Linear Regression, Ridge, Decision Tree, Random Forest, Gradient Boosting) with train/test split, cross-validation, R²/RMSE for regression or Accuracy/F1 for classification
 - **Feature Importance** — Random Forest importances + correlation-based ranking
 - **Residuals Analysis** — residual vs predicted plot + residual distribution
-- **AI Insights** — Gemini API generates professional analyst narrative conditioned on all EDA + ML results
+- **AI Insights(Coming soon)** — Gemini API generates professional analyst narrative conditioned on all EDA + ML results
 - **PDF Export** — full multi-page report with all charts and stats tables
 
 ---
@@ -27,7 +27,7 @@ autoeda_pro/
 ├── app.py           # Streamlit UI — all tabs, layout, state management
 ├── analysis.py      # EDA engine — per-column stats, quality scoring, issue detection
 ├── automl.py        # AutoML engine — scikit-learn model training, evaluation, feature importance
-├── insights.py      # Claude API integration — prompt engineering, error handling
+├── insights.py      # Gemini API integration — prompt engineering, error handling
 ├── report.py        # PDF report generation — matplotlib PdfPages, multi-page layout
 └── requirements.txt
 ```
@@ -42,25 +42,3 @@ cd autoeda-pro
 pip install -r requirements.txt
 streamlit run app.py
 ```
-
----
-
-## Deploy on Hugging Face Spaces (Free)
-
-1. Go to [huggingface.co/spaces](https://huggingface.co/spaces) → New Space
-2. Choose **Streamlit** as the SDK
-3. Upload all files from this folder
-4. Done — you get a live public URL
-
----
-
-## Deploy on Streamlit Cloud (Free)
-
-1. Push to GitHub
-2. Go to [share.streamlit.io](https://share.streamlit.io)
-3. Connect your repo → select `app.py`
-4. Deploy
-
----
-
-
