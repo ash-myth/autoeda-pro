@@ -55,7 +55,30 @@ st.markdown("""
   </span>
 </div>
 """, unsafe_allow_html=True)
+st.markdown("### Try Sample Dataset")
 
+sample = st.selectbox(
+    "Load Example Dataset",
+    ["None","Titanic","House Prices","NBA"]
+)
+
+if sample == "Titanic":
+    df = pd.read_csv(
+        "https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv"
+    )
+    uploaded = type("obj", (object,), {"name": "titanic.csv"})()
+
+elif sample == "House Prices":
+    df = pd.read_csv(
+        "https://raw.githubusercontent.com/ageron/handson-ml/master/datasets/housing/housing.csv"
+    )
+    uploaded = type("obj", (object,), {"name": "housing.csv"})()
+
+elif sample == "NBA":
+    df = pd.read_csv(
+        "https://raw.githubusercontent.com/justmarkham/pandas-videos/master/data/nba.csv"
+    )
+    uploaded = type("obj", (object,), {"name": "nba.csv"})()
 uploaded = st.file_uploader(
     "Upload a CSV dataset",
     type=["csv"],
@@ -102,7 +125,14 @@ for col, (label, val) in zip([c1,c2,c3,c4,c5,c6], metrics):
 
 st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
 
-tabs = st.tabs(["Overview", "Columns", "Quality", "Correlations", "AutoML", "✦ AI Insights"])
+tabs = st.tabs([
+    "Dataset Overview",
+    "Column Analysis",
+    "Data Quality",
+    "Feature Relationships",
+    "Model Insights",
+    "AI Insights"
+])
 
 # ══════════════════════════════════════
 # TAB 1: OVERVIEW
@@ -669,3 +699,11 @@ with st.sidebar:
 
     if ml_result:
         st.markdown(f"**Best Model:** {ml_result['best_model']}")
+    
+    st.markdown("""
+    ---
+    <div style='text-align:center;color:#5a5f7a;font-size:12px'>
+    Built by Ashmit Chatterjee ·
+    <a href='https://github.com/ash-myth/autoeda-pro' target='_blank' style='color:#4f8eff;text-decoration:none'>GitHub</a>
+    </div>
+    """, unsafe_allow_html=True)
