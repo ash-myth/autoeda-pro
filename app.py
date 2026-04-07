@@ -57,7 +57,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 uploaded = None
 df = None
-st.markdown("### Select Data Source")
+st.markdown("## Select Data Source")
 
 data_source = st.radio(
     "Choose input method",
