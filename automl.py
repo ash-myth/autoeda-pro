@@ -46,6 +46,13 @@ def run_automl(df: pd.DataFrame) -> dict | None:
 
     X = df[feature_cols].copy()
     y = df[target_col].copy()
+
+    X = X.replace([np.inf, -np.inf], np.nan)
+
+    X = X.dropna(axis=1, how="all")
+
+    if X.shape[1] == 0:
+        return None
     valid_idx = y.notna()
     X, y = X[valid_idx], y[valid_idx]
 
