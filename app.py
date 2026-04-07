@@ -113,8 +113,15 @@ def load_and_analyze(file_bytes, file_name):
     return df, eda, ml
 
 with st.spinner("Analyzing dataset…"):
-    file_bytes = uploaded.read()
-    df, eda, ml_result = load_and_analyze(file_bytes, uploaded.name)
+    if data_source == "Upload CSV":
+        file_bytes = uploaded.read()
+        df, eda, ml_result = load_and_analyze(file_bytes, uploaded.name)
+
+    else:
+        df, eda, ml_result = load_and_analyze(
+            df.to_csv(index=False).encode(),
+            uploaded.name
+        )
 
 c1, c2, c3, c4, c5, c6 = st.columns(6)
 metrics = [
