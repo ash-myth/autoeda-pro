@@ -28,14 +28,11 @@ def generate_pdf_report(df: pd.DataFrame, eda: dict, ml_result: dict | None, fil
 
     with PdfPages(buf) as pdf:
 
-        # ── PAGE 1: Title & Summary ────────────────────────────
         fig = plt.figure(figsize=(11, 8.5))
         _style_fig(fig)
         ax = fig.add_axes([0, 0, 1, 1])
         ax.set_facecolor("#07080f")
         ax.axis("off")
-
-        # Header
         ax.text(0.08, 0.88, "autoeda", fontsize=44, fontweight="bold", color="#4f8eff",
                 fontfamily="monospace", transform=ax.transAxes)
         ax.text(0.08 + 0.195, 0.885, "PRO", fontsize=20, fontweight="bold", color="#5a5f7a",
@@ -44,7 +41,6 @@ def generate_pdf_report(df: pd.DataFrame, eda: dict, ml_result: dict | None, fil
                 fontsize=14, color="#dde1f0", transform=ax.transAxes)
         ax.axhline(y=0.77, xmin=0.08, xmax=0.92, color="#1e2035", linewidth=1.5)
 
-        # File info
         info_lines = [
             f"File:        {filename}",
             f"Generated:   {datetime.now().strftime('%Y-%m-%d %H:%M')}",
@@ -59,7 +55,6 @@ def generate_pdf_report(df: pd.DataFrame, eda: dict, ml_result: dict | None, fil
             ax.text(0.08, 0.72 - i * 0.055, line, fontsize=11, color="#dde1f0",
                     fontfamily="monospace", transform=ax.transAxes)
 
-        # Issues summary
         ax.text(0.08, 0.28, "DATA QUALITY ISSUES", fontsize=9, color="#5a5f7a",
                 fontfamily="monospace",  transform=ax.transAxes)
         ax.axhline(y=0.265, xmin=0.08, xmax=0.92, color="#1e2035", linewidth=0.8)
@@ -80,7 +75,6 @@ def generate_pdf_report(df: pd.DataFrame, eda: dict, ml_result: dict | None, fil
         pdf.savefig(fig, bbox_inches="tight", facecolor="#07080f")
         plt.close(fig)
 
-        # ── PAGE 2: Numeric Column Distributions ──────────────
         num_cols = [c for c in df.columns if eda["column_info"][c]["type"] == "numeric"]
         if num_cols:
             n_cols_grid = min(3, len(num_cols))
@@ -120,7 +114,6 @@ def generate_pdf_report(df: pd.DataFrame, eda: dict, ml_result: dict | None, fil
             pdf.savefig(fig, bbox_inches="tight", facecolor="#07080f")
             plt.close(fig)
 
-        # ── PAGE 3: Correlation Heatmap ───────────────────────
         num_df = df.select_dtypes(include=[np.number]).dropna(axis=1, how="all")
         if num_df.shape[1] >= 2:
             import seaborn as sns
@@ -143,13 +136,11 @@ def generate_pdf_report(df: pd.DataFrame, eda: dict, ml_result: dict | None, fil
             pdf.savefig(fig, bbox_inches="tight", facecolor="#07080f")
             plt.close(fig)
 
-        # ── PAGE 4: AutoML Results ────────────────────────────
         if ml_result:
             fig = plt.figure(figsize=(11, 8.5))
             _style_fig(fig)
             gs = gridspec.GridSpec(2, 2, figure=fig)
 
-            # Model comparison bar
             ax1 = fig.add_subplot(gs[0, 0])
             _style_ax(ax1)
             names = [m["name"] for m in ml_result["models"]]
@@ -162,7 +153,6 @@ def generate_pdf_report(df: pd.DataFrame, eda: dict, ml_result: dict | None, fil
             ax1.invert_yaxis()
             ax1.set_xlim(0, 1)
 
-            # Feature importance
             ax2 = fig.add_subplot(gs[0, 1])
             _style_ax(ax2)
             imp = ml_result["feature_importance"][:8]
@@ -173,7 +163,6 @@ def generate_pdf_report(df: pd.DataFrame, eda: dict, ml_result: dict | None, fil
             ax2.set_title("Feature Importance", color="#dde1f0",
                           fontsize=10, fontfamily="monospace")
 
-            # Residuals / confusion matrix
             if "predictions" in ml_result and ml_result["predictions"]:
                 ax3 = fig.add_subplot(gs[1, 0])
                 _style_ax(ax3)
@@ -209,7 +198,6 @@ def generate_pdf_report(df: pd.DataFrame, eda: dict, ml_result: dict | None, fil
             pdf.savefig(fig, bbox_inches="tight", facecolor="#07080f")
             plt.close(fig)
 
-        # ── PAGE 5: Stats Table ───────────────────────────────
         fig, ax = plt.subplots(figsize=(11, 8.5))
         _style_fig(fig)
         ax.set_facecolor("#07080f")
