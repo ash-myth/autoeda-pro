@@ -89,7 +89,7 @@ def _leakage_suspects(df, eda: dict, ml_result: dict | None) -> list:
 
     return suspects
 
-def _call_groq(api_key: str, messages: list, max_tokens: int = 2000) -> str:
+def _call_groq(api_key: str, messages: list, max_tokens: int = 2000, response_format: dict | None = None) -> str:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -100,19 +100,19 @@ def _call_groq(api_key: str, messages: list, max_tokens: int = 2000) -> str:
         "temperature": 0.4,
         "max_tokens": max_tokens,
     }
+    if response_format:
+        payload["response_format"] = response_format
     resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
     resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"].strip()
 
 
 def _parse_json(raw: str) -> dict:
-    clean = raw.strip()
-    if clean.startswith("```"):
-        clean = clean.split("```")[1]
-        if clean.startswith("json"):
-            clean = clean[4:]
-    clean = clean.strip().rstrip("```").strip()
-    return json.loads(clean)
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start == -1 or end == -1:
+        raise ValueError(f"No JSON object found in response: {raw[:200]}")
+    return json.loads(raw[start:end + 1])
 
 def generate_report(api_key: str, df, eda: dict, ml_result: dict | None) -> dict:
     """
@@ -170,7 +170,7 @@ Be specific. Reference actual column names and numbers from the context. No fill
     raw = _call_groq(api_key, [
         {"role": "system", "content": system},
         {"role": "user", "content": user},
-    ])
+    ], response_format={"type": "json_object"})
 
     result = _parse_json(raw)
     result["_leakage_suspects"] = suspects
