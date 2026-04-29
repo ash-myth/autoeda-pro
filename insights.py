@@ -2,16 +2,12 @@ import json
 import numpy as np
 import requests
 import os
-
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 MODEL = "llama-3.3-70b-versatile"
-
 def _build_context(df, eda: dict, ml_result: dict | None) -> str:
     lines = []
-
     lines.append(f"DATASET: {len(df)} rows × {len(df.columns)} columns")
     lines.append(f"QUALITY SCORE: {eda['quality_score']}/100")
-
     lines.append("\nCOLUMN STATS:")
     for col, info in eda["column_info"].items():
         if info["type"] == "numeric":
@@ -26,7 +22,6 @@ def _build_context(df, eda: dict, ml_result: dict | None) -> str:
                 f"  {col} [categorical]: {info['unique']} unique values, "
                 f"top={top}, missing={info['missing_pct']}%"
             )
-
     numeric_cols = [c for c in df.columns if eda["column_info"][c]["type"] == "numeric"]
     if len(numeric_cols) >= 2:
         num_df = df[numeric_cols].select_dtypes(include=np.number)
@@ -40,7 +35,6 @@ def _build_context(df, eda: dict, ml_result: dict | None) -> str:
         lines.append("\nPAIRWISE CORRELATIONS (top 10 by |r|):")
         for a, b, r in pairs[:10]:
             lines.append(f"  {a} ↔ {b}: r={r}")
-
     if ml_result:
         lines.append(f"\nAUTOML TASK: {ml_result['task']}")
         lines.append(f"TARGET: {ml_result['target']}")
@@ -58,19 +52,15 @@ def _build_context(df, eda: dict, ml_result: dict | None) -> str:
             lines.append(f"  {fi['col']}: {fi['importance']}")
     else:
         lines.append("\nAUTOML: Not run (insufficient numeric columns).")
-
     return "\n".join(lines)
-
 def _leakage_suspects(df, eda: dict, ml_result: dict | None) -> list:
     if not ml_result:
         return []
     target = ml_result.get("target")
     if not target or target not in df.columns:
         return []
-
     suspects = []
     y = df[target].dropna()
-
     for col in ml_result.get("features", []):
         if col not in df.columns:
             continue
@@ -86,9 +76,7 @@ def _leakage_suspects(df, eda: dict, ml_result: dict | None) -> list:
                 suspects.append({"col": col, "r": round(r, 3), "level": "warning"})
         except Exception:
             continue
-
     return suspects
-
 def stream_groq(api_key: str, messages: list, max_tokens: int = 400):
     """Yields text chunks for use with st.write_stream."""
     headers = {
@@ -119,7 +107,6 @@ def stream_groq(api_key: str, messages: list, max_tokens: int = 400):
                     yield delta
             except (json.JSONDecodeError, KeyError):
                 continue
-
 def _call_groq(api_key: str, messages: list, max_tokens: int = 2000, response_format: dict | None = None) -> str:
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -136,15 +123,12 @@ def _call_groq(api_key: str, messages: list, max_tokens: int = 2000, response_fo
     resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
     resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"].strip()
-
-
 def _parse_json(raw: str) -> dict:
     start = raw.find("{")
     end = raw.rfind("}")
     if start == -1 or end == -1:
         raise ValueError(f"No JSON object found in response: {raw[:200]}")
     return json.loads(raw[start:end + 1])
-
 def generate_report(api_key: str, df, eda: dict, ml_result: dict | None) -> dict:
     """
     Returns dict with keys:
@@ -161,9 +145,7 @@ def generate_report(api_key: str, df, eda: dict, ml_result: dict | None) -> dict
         if suspects else
         "PRE-COMPUTED LEAKAGE SUSPECTS: none found (no feature correlated ≥0.85 with target)"
     )
-
     system = """You are a senior ML engineer doing a pre-modeling review of a dataset.
-
 Your job is NOT to repeat statistics the user can already see in charts.
 Your job is to reason across the data and catch things a junior analyst would miss.
 
@@ -191,22 +173,18 @@ Respond ONLY with a valid JSON object with exactly these four keys:
   Order: data cleaning → feature engineering → encoding → modeling choices → validation strategy.
 
 Be specific. Reference actual column names and numbers from the context. No filler."""
-
     user = (
         f"Dataset analysis:\n\n{context}\n\n"
         f"{leakage_note}\n\n"
         "Write the four-section review as a JSON object."
     )
-
     raw = _call_groq(api_key, [
         {"role": "system", "content": system},
         {"role": "user", "content": user},
     ], response_format={"type": "json_object"})
-
     result = _parse_json(raw)
     result["_leakage_suspects"] = suspects
     return result
-
 def ask_analyst(
     api_key: str,
     question: str,
@@ -216,7 +194,6 @@ def ask_analyst(
     history: list,
 ) -> str:
     context = _build_context(df, eda, ml_result)
-
     system = (
         "You are a senior ML engineer. The user is asking follow-up questions about their dataset.\n"
         "Answer concisely and specifically — cite actual column names, correlation values, "
@@ -226,9 +203,7 @@ def ask_analyst(
         "Keep answers under 120 words.\n\n"
         f"FULL DATASET CONTEXT:\n{context}"
     )
-
     messages = [{"role": "system", "content": system}]
     messages.extend(history)
     messages.append({"role": "user", "content": question})
-
     return _call_groq(api_key, messages, max_tokens=400)
