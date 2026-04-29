@@ -11,6 +11,7 @@ from io import BytesIO
 from analysis import run_eda
 from automl import run_automl
 from report import generate_pdf_report
+from insights import generate_report, ask_analyst
 st.set_page_config(
     page_title="AutoEDA Pro",
     page_icon="⌗",
@@ -144,9 +145,6 @@ tabs = st.tabs([
     "AI Insights"
 ])
 
-# ══════════════════════════════════════
-# TAB 1: OVERVIEW
-# ══════════════════════════════════════
 with tabs[0]:
     col_left, col_right = st.columns(2)
 
@@ -198,17 +196,11 @@ with tabs[0]:
             else:
                 st.info(f"🔵 {issue['msg']}")
 
-# ══════════════════════════════════════
-# TAB 2: COLUMNS
-# ══════════════════════════════════════
 with tabs[1]:
 
     num_cols = [c for c in df.columns if eda["column_info"][c]["type"] == "numeric"]
     cat_cols = [c for c in df.columns if eda["column_info"][c]["type"] == "categorical"]
 
-    # ─────────────────────────────────
-    # NUMERIC COLUMNS
-    # ─────────────────────────────────
     if num_cols:
 
         st.markdown('<div class="section-label">Numeric Columns</div>', unsafe_allow_html=True)
@@ -298,9 +290,6 @@ with tabs[1]:
             plt.close()
 
 
-    # ─────────────────────────────────
-    # CATEGORICAL COLUMNS
-    # ─────────────────────────────────
     if cat_cols:
 
         st.markdown(
@@ -342,9 +331,6 @@ with tabs[1]:
         st.pyplot(fig)
         plt.close()
 
-# ══════════════════════════════════════
-# TAB 3: QUALITY
-# ══════════════════════════════════════
 with tabs[2]:
     col_gauge, col_issues = st.columns([1, 2])
 
@@ -400,9 +386,6 @@ with tabs[2]:
     })
     st.dataframe(pd.DataFrame(health_rows), width="stretch", hide_index=True)
 
-# ══════════════════════════════════════
-# TAB 4: CORRELATIONS
-# ══════════════════════════════════════
 with tabs[3]:
 
     st.markdown('<div class="section-label">Correlation Analysis</div>', unsafe_allow_html=True)
@@ -423,9 +406,6 @@ with tabs[3]:
             ]
         )
 
-        # ─────────────────────────────
-        # HEATMAP
-        # ─────────────────────────────
         if plot_type == "Heatmap":
 
             fig, ax = plt.subplots(figsize=(10,7))
@@ -451,9 +431,6 @@ with tabs[3]:
             plt.close()
 
 
-        # ─────────────────────────────
-        # SCATTER PLOT
-        # ─────────────────────────────
         elif plot_type == "Scatter Plot":
 
             col1, col2 = st.columns(2)
@@ -495,9 +472,6 @@ with tabs[3]:
             plt.close()
 
 
-        # ─────────────────────────────
-        # TOP CORRELATIONS
-        # ─────────────────────────────
         elif plot_type == "Top Correlations":
 
             corr_pairs = (
@@ -520,9 +494,6 @@ with tabs[3]:
             )
 
 
-        # ─────────────────────────────
-        # CORRELATION TABLE
-        # ─────────────────────────────
         elif plot_type == "Correlation Table":
 
             st.dataframe(
@@ -532,9 +503,6 @@ with tabs[3]:
 
     else:
         st.info("Not enough numeric columns for correlation analysis.")
-# ══════════════════════════════════════
-# TAB 5: AUTOML
-# ══════════════════════════════════════
 with tabs[4]:
     if ml_result is None:
         st.warning("Need at least 2 numeric columns to run AutoML.")
@@ -639,48 +607,227 @@ with tabs[4]:
             st.pyplot(fig)
             plt.close()
 
-# ══════════════════════════════════════
-# TAB 6: AI INSIGHTS
-# ══════════════════════════════════════
 with tabs[5]:
 
-    st.markdown("### ✦ AI Insights")
+    groq_key = None
+    try:
+        groq_key = st.secrets["GROQ_API_KEY"]
+    except Exception:
+        pass
 
-    st.info(
-        "AI-powered dataset interpretation and automated analyst reports "
-        "are currently under development."
-    )
+    if not groq_key:
+        groq_key = st.session_state.get("groq_api_key", "")
 
-    st.markdown("### 🚀 Coming Soon")
+    if not groq_key:
+        st.markdown("""
+        <div style="background:#13141f; border:1px solid #1e2035; border-radius:12px;
+                    padding:28px 28px; margin-bottom:24px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px;
+                      font-weight:700; color:#fff; margin-bottom:6px;">✦ AI Insights</div>
+          <div style="font-size:13px; color:#9aa3c7; margin-bottom:18px;">
+            Paste your Groq API key to activate the analyst. Keys are free at
+            <a href="https://console.groq.com" target="_blank"
+               style="color:#4f8eff;">console.groq.com</a>
+            and never stored beyond this session.
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.write(
-        "We're building an AI-powered analyst that will automatically "
-        "interpret your dataset, highlight key findings, detect risks, "
-        "and recommend modeling improvements."
-    )
+        key_input = st.text_input(
+            "Groq API Key",
+            type="password",
+            placeholder="gsk_…",
+        )
+        if key_input:
+            st.session_state["groq_api_key"] = key_input
+            st.rerun()
+        st.stop()
 
-    st.caption(
-        "Natural Language Insights • Feature Interpretation • Model Recommendations"
-    )
     st.markdown("""
-    <div style="
-        margin-top:22px;
-        font-family:IBM Plex Mono,monospace;
-        font-size:11px;
-        color:#5a5f7a;
-    ">
-        Natural Language Insights · Feature Interpretation · Model Recommendations
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:24px;">
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:18px;
+                   font-weight:800; color:#fff;">✦ AI Analyst Report</span>
+      <span class="badge badge-accent">llama-3.3-70b · groq</span>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    report_cache_key = f"ai_report_{uploaded.name}_{eda['quality_score']}"
 
+    if report_cache_key not in st.session_state:
+        with st.spinner("Analyzing dataset with AI…"):
+            try:
+                st.session_state[report_cache_key] = generate_report(
+                    groq_key, df, eda, ml_result
+                )
+            except Exception as e:
+                st.error(f"Groq API error: {e}")
+                st.stop()
 
-# ══════════════════════════════════════
-# SIDEBAR: PDF Export
-# ══════════════════════════════════════
+    report = st.session_state[report_cache_key]
+
+    col_a, col_b = st.columns([1, 1])
+
+    col_a.markdown(f"""
+    <div style="background:#13141f; border:1px solid #1e2035; border-left:3px solid #4f8eff;
+                border-radius:12px; padding:20px 22px; margin-bottom:18px; height:100%;">
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1px;
+                  color:#4f8eff; font-weight:700; margin-bottom:10px;">DOMAIN INFERENCE</div>
+      <div style="font-size:13.5px; color:#dde1f0; line-height:1.75;">{report.get("domain", "—")}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_b.markdown(f"""
+    <div style="background:#13141f; border:1px solid #1e2035; border-left:3px solid #f5c542;
+                border-radius:12px; padding:20px 22px; margin-bottom:18px; height:100%;">
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1px;
+                  color:#f5c542; font-weight:700; margin-bottom:10px;">CROSS-FEATURE REASONING</div>
+      <div style="font-size:13.5px; color:#dde1f0; line-height:1.75;">{report.get("cross_feature", "—")}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_c, col_d = st.columns([1, 1])
+
+    suspects = report.get("_leakage_suspects", [])
+    if suspects:
+        badge_html = " ".join(
+            f'<span style="font-family:IBM Plex Mono,monospace; font-size:10px; font-weight:700; '
+            f'border-radius:5px; padding:3px 9px; display:inline-block; margin:2px; '
+            f'background:{"rgba(255,85,114,0.15)" if s["level"] == "critical" else "rgba(245,197,66,0.12)"}; '
+            f'color:{"#ff5572" if s["level"] == "critical" else "#f5c542"};">'
+            f'{s["col"]} r={s["r"]}</span>'
+            for s in suspects
+        )
+        leakage_badge_block = f'<div style="margin-bottom:10px;">{badge_html}</div>'
+    else:
+        leakage_badge_block = ""
+
+    leakage_border = "#ff5572" if suspects else "#22d3a0"
+    col_c.markdown(f"""
+    <div style="background:#13141f; border:1px solid #1e2035; border-left:3px solid {leakage_border};
+                border-radius:12px; padding:20px 22px; margin-bottom:18px;">
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1px;
+                  color:{leakage_border}; font-weight:700; margin-bottom:10px;">LEAKAGE ANALYSIS</div>
+      {leakage_badge_block}
+      <div style="font-size:13.5px; color:#dde1f0; line-height:1.75;">{report.get("leakage", "—")}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    action_raw = report.get("action_plan", "—")
+    if isinstance(action_raw, str):
+        lines = [l.strip() for l in action_raw.strip().splitlines() if l.strip()]
+        steps_html = "".join(
+            f'<div style="display:flex; gap:10px; margin-bottom:10px; align-items:flex-start;">'
+            f'<span style="font-family:IBM Plex Mono,monospace; font-size:10px; font-weight:700; '
+            f'color:#b87fff; background:rgba(184,127,255,0.1); border-radius:4px; '
+            f'padding:2px 7px; white-space:nowrap; margin-top:2px;">{i+1}</span>'
+            f'<span style="font-size:13px; color:#dde1f0; line-height:1.65;">{line.lstrip("0123456789. ")}</span>'
+            f'</div>'
+            for i, line in enumerate(lines)
+        )
+    else:
+        steps_html = f'<div style="font-size:13px; color:#dde1f0; line-height:1.65;">{action_raw}</div>'
+
+    col_d.markdown(f"""
+    <div style="background:#13141f; border:1px solid #1e2035; border-left:3px solid #b87fff;
+                border-radius:12px; padding:20px 22px; margin-bottom:18px;">
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1px;
+                  color:#b87fff; font-weight:700; margin-bottom:14px;">ACTION PLAN</div>
+      {steps_html}
+    </div>
+    """, unsafe_allow_html=True)
+
+    if st.button("↺ Regenerate Report", key="regen_report"):
+        if report_cache_key in st.session_state:
+            del st.session_state[report_cache_key]
+        st.rerun()
+
+    st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:700;
+                color:#fff; letter-spacing:0.5px; margin-bottom:16px;">
+      ✦ Ask the Analyst
+    </div>
+    """, unsafe_allow_html=True)
+
+    chat_key = f"ai_chat_{uploaded.name}"
+    if chat_key not in st.session_state:
+        st.session_state[chat_key] = []
+
+    for msg in st.session_state[chat_key]:
+        is_user = msg["role"] == "user"
+        align  = "flex-end"  if is_user else "flex-start"
+        bg     = "#1a1f38"   if is_user else "#13141f"
+        border = "#2d3a5e"   if is_user else "#1e2035"
+        color  = "#a8b4ff"   if is_user else "#dde1f0"
+        label  = "you"       if is_user else "analyst"
+        label_color = "#4f8eff" if is_user else "#22d3a0"
+        st.markdown(f"""
+        <div style="display:flex; justify-content:{align}; margin-bottom:12px;">
+          <div style="max-width:78%; background:{bg}; border:1px solid {border};
+                      border-radius:12px; padding:14px 16px;">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:9px;
+                        color:{label_color}; margin-bottom:6px; font-weight:700;
+                        letter-spacing:1px;">{label}</div>
+            <div style="font-size:13px; color:{color}; line-height:1.65;">{msg['content']}</div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    question = st.chat_input("Ask anything about this dataset…")
+    if question:
+        st.session_state[chat_key].append({"role": "user", "content": question})
+
+        history_for_api = st.session_state[chat_key][-6:]
+
+        with st.spinner("Thinking…"):
+            try:
+                answer = ask_analyst(
+                    groq_key,
+                    question,
+                    df, eda, ml_result,
+                    history_for_api[:-1],  
+                )
+                st.session_state[chat_key].append({"role": "assistant", "content": answer})
+            except Exception as e:
+                st.session_state[chat_key].append({
+                    "role": "assistant",
+                    "content": f"⚠ API error: {e}"
+                })
+        st.rerun()
+
+    if st.session_state.get(chat_key):
+        if st.button("✕ Clear chat", key="clear_chat"):
+            st.session_state[chat_key] = []
+            st.rerun()
+
 with st.sidebar:
     st.markdown("### ⌗ AutoEDA Pro")
+    st.markdown("---")
+    groq_sidebar_key = None
+    try:
+        groq_sidebar_key = st.secrets["GROQ_API_KEY"]
+    except Exception:
+        pass
+    if not groq_sidebar_key:
+        groq_sidebar_key = st.session_state.get("groq_api_key", "")
+
+    if groq_sidebar_key:
+        st.markdown(
+            "<div style='font-family:IBM Plex Mono,monospace;font-size:11px;"
+            "color:#22d3a0;margin-bottom:4px;'>✓ Groq API key active</div>",
+            unsafe_allow_html=True
+        )
+        if st.button("✕ Clear key", key="clear_groq_key"):
+            st.session_state.pop("groq_api_key", None)
+            st.rerun()
+    else:
+        st.markdown(
+            "<div style='font-family:IBM Plex Mono,monospace;font-size:11px;"
+            "color:#5a5f7a;margin-bottom:4px;'>○ Groq key not set — see AI Insights tab</div>",
+            unsafe_allow_html=True
+        )
+
     st.markdown("---")
 
     st.markdown("**Export Report**")
