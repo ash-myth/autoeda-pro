@@ -713,19 +713,19 @@ with tabs[5]:
     """, unsafe_allow_html=True)
 
     action_raw = report.get("action_plan", "—")
-    if isinstance(action_raw, str):
-        lines = [l.strip() for l in action_raw.strip().splitlines() if l.strip()]
-        steps_html = "".join(
-            f'<div style="display:flex; gap:10px; margin-bottom:10px; align-items:flex-start;">'
-            f'<span style="font-family:IBM Plex Mono,monospace; font-size:10px; font-weight:700; '
-            f'color:#b87fff; background:rgba(184,127,255,0.1); border-radius:4px; '
-            f'padding:2px 7px; white-space:nowrap; margin-top:2px;">{i+1}</span>'
-            f'<span style="font-size:13px; color:#dde1f0; line-height:1.65;">{line.lstrip("0123456789. ")}</span>'
-            f'</div>'
-            for i, line in enumerate(lines)
-        )
+    if isinstance(action_raw, list):
+        lines = [str(item).strip() for item in action_raw if str(item).strip() and not str(item).strip().isdigit()]
     else:
-        steps_html = f'<div style="font-size:13px; color:#dde1f0; line-height:1.65;">{action_raw}</div>'
+        lines = [l.strip() for l in str(action_raw).strip().splitlines() if l.strip()]
+    steps_html = "".join(
+        f'<div style="display:flex; gap:10px; margin-bottom:10px; align-items:flex-start;">'
+        f'<span style="font-family:IBM Plex Mono,monospace; font-size:10px; font-weight:700; '
+        f'color:#b87fff; background:rgba(184,127,255,0.1); border-radius:4px; '
+        f'padding:2px 7px; white-space:nowrap; margin-top:2px;">{i+1}</span>'
+        f'<span style="font-size:13px; color:#dde1f0; line-height:1.65;">{line.lstrip("0123456789. ")}</span>'
+        f'</div>'
+        for i, line in enumerate(lines)
+    )
 
     col_d.markdown(f"""
     <div style="background:#13141f; border:1px solid #1e2035; border-left:3px solid #b87fff;
