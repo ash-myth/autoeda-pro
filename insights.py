@@ -184,8 +184,8 @@ Respond ONLY with a valid JSON object with exactly these four keys:
   If none exist, briefly confirm the feature-target correlations look healthy and explain
   what that implies about expected model difficulty.
 
-"action_plan" — A numbered list of 5-7 concrete, ordered steps. Each step must name the exact
-  column and transformation. No vague advice.
+"action_plan" — A JSON array of 5-7 strings. Each string is one concrete, ordered step that names the exact
+  column and transformation. No vague advice. No numbering prefix — just the step text.
   BAD: "handle missing values"
   GOOD: "Impute Age with median (not mean — right-skewed at 0.8); then bin into 4 age bands before encoding"
   Order: data cleaning → feature engineering → encoding → modeling choices → validation strategy.
