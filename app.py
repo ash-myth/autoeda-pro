@@ -713,19 +713,28 @@ with tabs[5]:
     """, unsafe_allow_html=True)
 
     action_raw = report.get("action_plan", "—")
-    if isinstance(action_raw, str):
-        lines = [l.strip() for l in action_raw.strip().splitlines() if l.strip()]
-        steps_html = "".join(
-            f'<div style="display:flex; gap:10px; margin-bottom:10px; align-items:flex-start;">'
-            f'<span style="font-family:IBM Plex Mono,monospace; font-size:10px; font-weight:700; '
-            f'color:#b87fff; background:rgba(184,127,255,0.1); border-radius:4px; '
-            f'padding:2px 7px; white-space:nowrap; margin-top:2px;">{i+1}</span>'
-            f'<span style="font-size:13px; color:#dde1f0; line-height:1.65;">{line.lstrip("0123456789. ")}</span>'
-            f'</div>'
-            for i, line in enumerate(lines)
-        )
+    # LLM may return a list of alternating [num, text, num, text] or plain strings
+    if isinstance(action_raw, list):
+        # Filter out bare numbers, keep only string items
+        step_texts = [str(item) for item in action_raw if not isinstance(item, (int, float))]
+        # If filtering left nothing, stringify everything non-numeric
+        if not step_texts:
+            step_texts = [str(item) for item in action_raw]
+    elif isinstance(action_raw, str):
+        step_texts = [l.strip() for l in action_raw.strip().splitlines() if l.strip()]
     else:
-        steps_html = f'<div style="font-size:13px; color:#dde1f0; line-height:1.65;">{action_raw}</div>'
+        step_texts = [str(action_raw)]
+
+    steps_html = "".join(
+        f'<div style="display:flex; gap:10px; margin-bottom:12px; align-items:flex-start;">'
+        f'<span style="font-family:IBM Plex Mono,monospace; font-size:10px; font-weight:700; '
+        f'color:#b87fff; background:rgba(184,127,255,0.1); border-radius:4px; '
+        f'padding:2px 7px; white-space:nowrap; margin-top:2px; flex-shrink:0;">{i+1}</span>'
+        f'<span style="font-size:13px; color:#dde1f0; line-height:1.65;">'
+        f'{text.lstrip("0123456789. ")}</span>'
+        f'</div>'
+        for i, text in enumerate(step_texts)
+    )
 
     col_d.markdown(f"""
     <div style="background:#13141f; border:1px solid #1e2035; border-left:3px solid #b87fff;
@@ -754,33 +763,19 @@ with tabs[5]:
     if chat_key not in st.session_state:
         st.session_state[chat_key] = []
 
+    # Render full history with native chat_message (no rerender flicker)
     for msg in st.session_state[chat_key]:
-        is_user = msg["role"] == "user"
-        align  = "flex-end"  if is_user else "flex-start"
-        bg     = "#1a1f38"   if is_user else "#13141f"
-        border = "#2d3a5e"   if is_user else "#1e2035"
-        color  = "#a8b4ff"   if is_user else "#dde1f0"
-        label  = "you"       if is_user else "analyst"
-        label_color = "#4f8eff" if is_user else "#22d3a0"
-        st.markdown(f"""
-        <div style="display:flex; justify-content:{align}; margin-bottom:12px;">
-          <div style="max-width:78%; background:{bg}; border:1px solid {border};
-                      border-radius:12px; padding:14px 16px;">
-            <div style="font-family:'IBM Plex Mono',monospace; font-size:9px;
-                        color:{label_color}; margin-bottom:6px; font-weight:700;
-                        letter-spacing:1px;">{label}</div>
-            <div style="font-size:13px; color:{color}; line-height:1.65;">{msg['content']}</div>
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
+        with st.chat_message("user" if msg["role"] == "user" else "assistant"):
+            st.markdown(msg["content"])
 
     question = st.chat_input("Ask anything about this dataset…")
     if question:
+        # Append + immediately render user bubble
         st.session_state[chat_key].append({"role": "user", "content": question})
+        with st.chat_message("user"):
+            st.markdown(question)
 
         history_for_api = st.session_state[chat_key][-6:]
-
-        context = f"FULL DATASET CONTEXT:\n{_build_context(df, eda, ml_result)}" if False else ""
         system = (
             "You are a senior ML engineer. The user is asking follow-up questions about their dataset.\n"
             "Answer concisely and specifically — cite actual column names, correlation values, "
@@ -798,11 +793,10 @@ with tabs[5]:
                 answer = st.write_stream(stream_groq(groq_key, messages))
             st.session_state[chat_key].append({"role": "assistant", "content": answer})
         except Exception as e:
-            st.session_state[chat_key].append({
-                "role": "assistant",
-                "content": f"⚠ API error: {e}"
-            })
-            st.rerun()
+            err = f"⚠ API error: {e}"
+            st.session_state[chat_key].append({"role": "assistant", "content": err})
+            with st.chat_message("assistant"):
+                st.error(err)
 
     if st.session_state.get(chat_key):
         if st.button("✕ Clear chat", key="clear_chat"):
