@@ -11,7 +11,7 @@ from io import BytesIO
 from analysis import run_eda
 from automl import run_automl
 from report import generate_pdf_report
-from insights import generate_report, ask_analyst
+from insights import generate_report, ask_analyst, stream_groq
 st.set_page_config(
     page_title="AutoEDA Pro",
     page_icon="⌗",
@@ -713,19 +713,19 @@ with tabs[5]:
     """, unsafe_allow_html=True)
 
     action_raw = report.get("action_plan", "—")
-    if isinstance(action_raw, list):
-        lines = [str(item).strip() for item in action_raw if str(item).strip() and not str(item).strip().isdigit()]
+    if isinstance(action_raw, str):
+        lines = [l.strip() for l in action_raw.strip().splitlines() if l.strip()]
+        steps_html = "".join(
+            f'<div style="display:flex; gap:10px; margin-bottom:10px; align-items:flex-start;">'
+            f'<span style="font-family:IBM Plex Mono,monospace; font-size:10px; font-weight:700; '
+            f'color:#b87fff; background:rgba(184,127,255,0.1); border-radius:4px; '
+            f'padding:2px 7px; white-space:nowrap; margin-top:2px;">{i+1}</span>'
+            f'<span style="font-size:13px; color:#dde1f0; line-height:1.65;">{line.lstrip("0123456789. ")}</span>'
+            f'</div>'
+            for i, line in enumerate(lines)
+        )
     else:
-        lines = [l.strip() for l in str(action_raw).strip().splitlines() if l.strip()]
-    steps_html = "".join(
-        f'<div style="display:flex; gap:10px; margin-bottom:10px; align-items:flex-start;">'
-        f'<span style="font-family:IBM Plex Mono,monospace; font-size:10px; font-weight:700; '
-        f'color:#b87fff; background:rgba(184,127,255,0.1); border-radius:4px; '
-        f'padding:2px 7px; white-space:nowrap; margin-top:2px;">{i+1}</span>'
-        f'<span style="font-size:13px; color:#dde1f0; line-height:1.65;">{line.lstrip("0123456789. ")}</span>'
-        f'</div>'
-        for i, line in enumerate(lines)
-    )
+        steps_html = f'<div style="font-size:13px; color:#dde1f0; line-height:1.65;">{action_raw}</div>'
 
     col_d.markdown(f"""
     <div style="background:#13141f; border:1px solid #1e2035; border-left:3px solid #b87fff;
@@ -780,21 +780,29 @@ with tabs[5]:
 
         history_for_api = st.session_state[chat_key][-6:]
 
-        with st.spinner("Thinking…"):
-            try:
-                answer = ask_analyst(
-                    groq_key,
-                    question,
-                    df, eda, ml_result,
-                    history_for_api[:-1],  
-                )
-                st.session_state[chat_key].append({"role": "assistant", "content": answer})
-            except Exception as e:
-                st.session_state[chat_key].append({
-                    "role": "assistant",
-                    "content": f"⚠ API error: {e}"
-                })
-        st.rerun()
+        context = f"FULL DATASET CONTEXT:\n{_build_context(df, eda, ml_result)}" if False else ""
+        system = (
+            "You are a senior ML engineer. The user is asking follow-up questions about their dataset.\n"
+            "Answer concisely and specifically — cite actual column names, correlation values, "
+            "model scores, or feature importances from the context.\n"
+            "Do NOT restate what the user can already see in charts. "
+            "Reason about implications, causes, and what to do next.\n"
+            "Keep answers under 120 words."
+        )
+        messages = [{"role": "system", "content": system}]
+        messages.extend(history_for_api[:-1])
+        messages.append({"role": "user", "content": question})
+
+        try:
+            with st.chat_message("assistant"):
+                answer = st.write_stream(stream_groq(groq_key, messages))
+            st.session_state[chat_key].append({"role": "assistant", "content": answer})
+        except Exception as e:
+            st.session_state[chat_key].append({
+                "role": "assistant",
+                "content": f"⚠ API error: {e}"
+            })
+            st.rerun()
 
     if st.session_state.get(chat_key):
         if st.button("✕ Clear chat", key="clear_chat"):
