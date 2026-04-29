@@ -6,7 +6,6 @@ import matplotlib.gridspec as gridspec
 import seaborn as sns
 import warnings
 warnings.filterwarnings("ignore")
-
 from io import BytesIO
 from analysis import run_eda
 from automl import run_automl
@@ -21,11 +20,9 @@ st.set_page_config(
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
-
 html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 .stApp { background-color: #07080f; color: #dde1f0; }
 .block-container { padding: 2rem 3rem; max-width: 1200px; }
-
 h1, h2, h3 { font-family: 'IBM Plex Mono', monospace !important; }
 .metric-card { background: #13141f; border: 1px solid #1e2035; border-radius: 12px; padding: 18px 20px; }
 .section-label {
@@ -45,7 +42,6 @@ div[data-testid="stTab"] button { font-family: 'IBM Plex Mono', monospace !impor
 div[data-testid="metric-container"] { background: #13141f; border: 1px solid #1e2035; border-radius: 12px; padding: 16px; }
 </style>
 """, unsafe_allow_html=True)
-
 st.markdown("""
 <div style="display:flex; align-items:center; gap:14px; padding:0 0 28px 0; border-bottom:1px solid #1e2035; margin-bottom:32px;">
   <span style="font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:800; color:#fff;">
@@ -59,18 +55,15 @@ st.markdown("""
 uploaded = None
 df = None
 st.markdown("#### Select Data Source")
-
 data_source = st.radio(
     "Choose input method",
     ["Upload CSV", "Use Sample Dataset"]
 )
 if data_source == "Upload CSV":
-
     uploaded = st.file_uploader(
         "Upload a CSV dataset",
         type=["csv"]
     )
-
     if uploaded:
         df = pd.read_csv(uploaded)
 else:
@@ -78,7 +71,6 @@ else:
         "Choose Sample Dataset",
         ["None", "Titanic", "House Prices", "Heart Disease"]
     )
-
     if sample == "Titanic":
         df = pd.read_csv("samples/Titanic-Dataset.csv")
         uploaded = type("obj", (object,), {"name": "Titanic-Dataset.csv"})()
@@ -90,7 +82,6 @@ else:
     elif sample == "Heart Disease":
         df = pd.read_csv("samples/heart_dataset.csv")
         uploaded = type("obj", (object,), {"name": "heart_dataset.csv"})()
-
 if uploaded is None:
     st.markdown("""
     <div style="background:#0e0f1a; border:2px dashed #1e2035; border-radius:16px; padding:60px 40px; text-align:center; margin-top:24px;">
@@ -105,23 +96,19 @@ if uploaded is None:
                   for f in ["Statistical Profiling", "Outlier Detection", "Correlation Matrix", "AutoML + Feature Importance", "AI Narrative", "PDF Report"]),
     unsafe_allow_html=True)
     st.stop()
-
 @st.cache_data(show_spinner=False)
 def load_and_analyze(file_bytes, file_name):
     df = pd.read_csv(BytesIO(file_bytes))
     eda = run_eda(df)
     ml = run_automl(df)
     return df, eda, ml
-
 with st.spinner("Analyzing dataset…"):
     if data_source == "Upload CSV":
         file_bytes = uploaded.getvalue()
         df, eda, ml_result = load_and_analyze(file_bytes, uploaded.name)
-
     else:
         file_bytes = df.to_csv(index=False).encode()
         df, eda, ml_result = load_and_analyze(file_bytes, uploaded.name)
-
 c1, c2, c3, c4, c5, c6 = st.columns(6)
 metrics = [
     ("Rows", f"{len(df):,}"),
@@ -133,9 +120,7 @@ metrics = [
 ]
 for col, (label, val) in zip([c1,c2,c3,c4,c5,c6], metrics):
     col.metric(label, val)
-
 st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
-
 tabs = st.tabs([
     "Dataset Overview",
     "Column Analysis",
@@ -144,10 +129,8 @@ tabs = st.tabs([
     "Model Insights",
     "AI Insights"
 ])
-
 with tabs[0]:
     col_left, col_right = st.columns(2)
-
     with col_left:
         st.markdown('<div class="section-label">Missing Values by Column</div>', unsafe_allow_html=True)
         missing = eda["missing_pct"].sort_values(ascending=False)
@@ -169,7 +152,6 @@ with tabs[0]:
             plt.tight_layout()
             st.pyplot(fig)
             plt.close()
-
     with col_right:
         st.markdown('<div class="section-label">Schema Overview</div>', unsafe_allow_html=True)
         schema_data = []
@@ -183,7 +165,6 @@ with tabs[0]:
                 "Flag": "⚠ ID" if info.get("is_id") else ("⚠ Const" if info.get("is_constant") else "✓")
             })
         st.dataframe(pd.DataFrame(schema_data), width="stretch", hide_index=True)
-
     st.markdown('<div class="section-label" style="margin-top:24px">Detected Issues</div>', unsafe_allow_html=True)
     if not eda["issues"]:
         st.success("No issues detected")
@@ -195,32 +176,22 @@ with tabs[0]:
                 st.warning(f"🟡 {issue['msg']}")
             else:
                 st.info(f"🔵 {issue['msg']}")
-
 with tabs[1]:
-
     num_cols = [c for c in df.columns if eda["column_info"][c]["type"] == "numeric"]
     cat_cols = [c for c in df.columns if eda["column_info"][c]["type"] == "categorical"]
-
     if num_cols:
-
         st.markdown('<div class="section-label">Numeric Columns</div>', unsafe_allow_html=True)
-
         selected_col = st.selectbox(
             "Select Numeric Column",
             num_cols
         )
-
         series = df[selected_col].dropna()
-
         col1, col2 = st.columns(2)
-
         with col1:
             fig, ax = plt.subplots(figsize=(6,4))
             fig.patch.set_facecolor("#07080f")
             ax.set_facecolor("#0e0f1a")
-
             ax.hist(series, bins=25, color="#4f8eff", alpha=0.85)
-
             ax.axvline(
                 series.mean(),
                 color="#22d3a0",
@@ -228,7 +199,6 @@ with tabs[1]:
                 linewidth=2,
                 label=f"Mean: {series.mean():.2f}"
             )
-
             ax.axvline(
                 series.median(),
                 color="#f5c542",
@@ -236,29 +206,21 @@ with tabs[1]:
                 linewidth=2,
                 label=f"Median: {series.median():.2f}"
             )
-
             ax.set_title(
                 f"{selected_col} Distribution",
                 color="#dde1f0",
                 fontsize=12
             )
-
             ax.tick_params(colors="#9aa3c7")
-
             for spine in ax.spines.values():
                 spine.set_color("#1e2035")
-
             ax.legend()
-
             st.pyplot(fig)
             plt.close()
-
         with col2:
-
             fig, ax = plt.subplots(figsize=(6,2.5))
             fig.patch.set_facecolor("#07080f")
             ax.set_facecolor("#0e0f1a")
-
             ax.boxplot(
                 series,
                 vert=False,
@@ -272,7 +234,6 @@ with tabs[1]:
                     linewidth=2
                 )
             )
-
             info = eda["column_info"][selected_col]
 
             ax.set_title(
@@ -280,7 +241,6 @@ with tabs[1]:
                 color="#dde1f0",
                 fontsize=10
             )
-
             ax.tick_params(colors="#9aa3c7")
 
             for spine in ax.spines.values():
@@ -288,52 +248,38 @@ with tabs[1]:
 
             st.pyplot(fig)
             plt.close()
-
-
     if cat_cols:
-
         st.markdown(
             '<div class="section-label" style="margin-top:24px">Categorical Columns</div>',
             unsafe_allow_html=True
         )
-
         selected_cat = st.selectbox(
             "Select Categorical Column",
             cat_cols
         )
-
         vc = df[selected_cat].value_counts().head(10)
-
         fig, ax = plt.subplots(figsize=(7,4))
         fig.patch.set_facecolor("#07080f")
         ax.set_facecolor("#0e0f1a")
-
         ax.barh(
             vc.index.astype(str),
             vc.values,
             color="#b87fff",
             alpha=0.85
         )
-
         ax.set_title(
             f"{selected_cat} Top Categories",
             color="#dde1f0",
             fontsize=12
         )
-
         ax.tick_params(colors="#9aa3c7")
-
         for spine in ax.spines.values():
             spine.set_color("#1e2035")
-
         ax.invert_yaxis()
-
         st.pyplot(fig)
         plt.close()
-
 with tabs[2]:
     col_gauge, col_issues = st.columns([1, 2])
-
     with col_gauge:
         st.markdown('<div class="section-label">Quality Score</div>', unsafe_allow_html=True)
         score = eda["quality_score"]
@@ -355,7 +301,6 @@ with tabs[2]:
         plt.tight_layout()
         st.pyplot(fig)
         plt.close()
-
     with col_issues:
         st.markdown('<div class="section-label">Issues Breakdown</div>', unsafe_allow_html=True)
         if not eda["issues"]:
@@ -368,7 +313,6 @@ with tabs[2]:
                     st.warning(f"🟡 **[MED]** {issue['msg']}")
                 else:
                     st.info(f"🔵 **[INFO]** {issue['msg']}")
-
     st.markdown('<div class="section-label" style="margin-top:24px">Column Health Report</div>', unsafe_allow_html=True)
     health_rows = []
     for col in df.columns:
@@ -385,17 +329,11 @@ with tabs[2]:
         "Outliers": info.get("outliers", None),
     })
     st.dataframe(pd.DataFrame(health_rows), width="stretch", hide_index=True)
-
 with tabs[3]:
-
     st.markdown('<div class="section-label">Correlation Analysis</div>', unsafe_allow_html=True)
-
     numeric_df = df.select_dtypes(include=np.number)
-
     if len(numeric_df.columns) > 1:
-
         corr = numeric_df.corr()
-
         plot_type = st.selectbox(
             "Select Analysis Type",
             [
@@ -405,13 +343,10 @@ with tabs[3]:
                 "Correlation Table"
             ]
         )
-
         if plot_type == "Heatmap":
-
             fig, ax = plt.subplots(figsize=(10,7))
             fig.patch.set_facecolor("#07080f")
             ax.set_facecolor("#0e0f1a")
-
             sns.heatmap(
                 corr,
                 cmap="coolwarm",
@@ -419,67 +354,49 @@ with tabs[3]:
                 annot=False,
                 ax=ax
             )
-
             ax.set_title(
                 "Correlation Heatmap",
                 color="#dde1f0"
             )
-
             ax.tick_params(colors="#9aa3c7")
-
             st.pyplot(fig)
             plt.close()
-
-
         elif plot_type == "Scatter Plot":
-
             col1, col2 = st.columns(2)
-
             with col1:
                 feature_x = st.selectbox(
                     "Feature 1",
                     numeric_df.columns
                 )
-
             with col2:
                 feature_y = st.selectbox(
                     "Feature 2",
                     numeric_df.columns,
                     index=1 if len(numeric_df.columns) > 1 else 0
                 )
-
             fig, ax = plt.subplots(figsize=(7,4))
             fig.patch.set_facecolor("#07080f")
             ax.set_facecolor("#0e0f1a")
-
             ax.scatter(
                 df[feature_x],
                 df[feature_y],
                 alpha=0.6,
                 color="#4f8eff"
             )
-
             corr_val = df[feature_x].corr(df[feature_y])
-
             ax.set_title(
                 f"{feature_x} vs {feature_y} (corr={corr_val:.2f})",
                 color="#dde1f0"
             )
-
             ax.tick_params(colors="#9aa3c7")
-
             st.pyplot(fig)
             plt.close()
-
-
         elif plot_type == "Top Correlations":
-
             corr_pairs = (
                 corr.where(np.triu(np.ones(corr.shape), k=1).astype(bool))
                 .stack()
                 .reset_index()
             )
-
             corr_pairs.columns = ["Feature 1", "Feature 2", "Correlation"]
 
             top_corr = corr_pairs.sort_values(
@@ -492,15 +409,11 @@ with tabs[3]:
                 top_corr,
                 width="stretch"
             )
-
-
         elif plot_type == "Correlation Table":
-
             st.dataframe(
                 corr,
                 width="stretch"
             )
-
     else:
         st.info("Not enough numeric columns for correlation analysis.")
 with tabs[4]:
@@ -518,9 +431,7 @@ with tabs[4]:
           </div>
         </div>
         """, unsafe_allow_html=True)
-
         col_models, col_imp = st.columns(2)
-
         with col_models:
             st.markdown('<div class="section-label">Model Comparison</div>', unsafe_allow_html=True)
             for m in ml_result["models"]:
@@ -546,7 +457,6 @@ with tabs[4]:
                   </div>
                 </div>
                 """, unsafe_allow_html=True)
-
         with col_imp:
             st.markdown('<div class="section-label">Feature Importance</div>', unsafe_allow_html=True)
             imp = ml_result["feature_importance"]
@@ -565,7 +475,6 @@ with tabs[4]:
                 plt.tight_layout()
                 st.pyplot(fig)
                 plt.close()
-
         if "confusion_matrix" in ml_result:
             st.markdown('<div class="section-label" style="margin-top:16px">Confusion Matrix</div>', unsafe_allow_html=True)
             fig, ax = plt.subplots(figsize=(5, 4))
@@ -579,7 +488,6 @@ with tabs[4]:
             plt.tight_layout()
             st.pyplot(fig)
             plt.close()
-
         if "residuals" in ml_result:
             st.markdown('<div class="section-label" style="margin-top:16px">Residuals Plot</div>', unsafe_allow_html=True)
             fig, axes = plt.subplots(1, 2, figsize=(10, 3.5))
@@ -588,36 +496,28 @@ with tabs[4]:
                 ax.set_facecolor("#0e0f1a")
                 ax.tick_params(colors="#5a5f7a", labelsize=8)
                 ax.spines[:].set_color("#1e2035")
-
             preds = np.array(ml_result["predictions"])
             actuals = np.array(ml_result["actuals"])
             residuals = actuals - preds
-
             axes[0].scatter(preds, residuals, color="#4f8eff", alpha=0.5, s=20)
             axes[0].axhline(0, color="#22d3a0", linewidth=1.5, linestyle="--")
             axes[0].set_xlabel("Predicted", color="#5a5f7a", fontsize=9)
             axes[0].set_ylabel("Residuals", color="#5a5f7a", fontsize=9)
             axes[0].set_title("Residuals vs Predicted", color="#dde1f0", fontsize=10)
-
             axes[1].hist(residuals, bins=25, color="#b87fff", alpha=0.8, edgecolor="#07080f")
             axes[1].set_xlabel("Residual", color="#5a5f7a", fontsize=9)
             axes[1].set_title("Residual Distribution", color="#dde1f0", fontsize=10)
-
             plt.tight_layout()
             st.pyplot(fig)
             plt.close()
-
 with tabs[5]:
-
     groq_key = None
     try:
         groq_key = st.secrets["GROQ_API_KEY"]
     except Exception:
         pass
-
     if not groq_key:
         groq_key = st.session_state.get("groq_api_key", "")
-
     if not groq_key:
         st.markdown("""
         <div style="background:#13141f; border:1px solid #1e2035; border-radius:12px;
@@ -632,7 +532,6 @@ with tabs[5]:
           </div>
         </div>
         """, unsafe_allow_html=True)
-
         key_input = st.text_input(
             "Groq API Key",
             type="password",
@@ -642,7 +541,6 @@ with tabs[5]:
             st.session_state["groq_api_key"] = key_input
             st.rerun()
         st.stop()
-
     st.markdown("""
     <div style="display:flex; align-items:center; gap:10px; margin-bottom:24px;">
       <span style="font-family:'IBM Plex Mono',monospace; font-size:18px;
@@ -650,9 +548,7 @@ with tabs[5]:
       <span class="badge badge-accent">llama-3.3-70b · groq</span>
     </div>
     """, unsafe_allow_html=True)
-
     report_cache_key = f"ai_report_{uploaded.name}_{eda['quality_score']}"
-
     if report_cache_key not in st.session_state:
         with st.spinner("Analyzing dataset with AI…"):
             try:
@@ -662,11 +558,8 @@ with tabs[5]:
             except Exception as e:
                 st.error(f"Groq API error: {e}")
                 st.stop()
-
     report = st.session_state[report_cache_key]
-
     col_a, col_b = st.columns([1, 1])
-
     col_a.markdown(f"""
     <div style="background:#13141f; border:1px solid #1e2035; border-left:3px solid #4f8eff;
                 border-radius:12px; padding:20px 22px; margin-bottom:18px; height:100%;">
@@ -684,9 +577,7 @@ with tabs[5]:
       <div style="font-size:13.5px; color:#dde1f0; line-height:1.75;">{report.get("cross_feature", "—")}</div>
     </div>
     """, unsafe_allow_html=True)
-
     col_c, col_d = st.columns([1, 1])
-
     suspects = report.get("_leakage_suspects", [])
     if suspects:
         badge_html = " ".join(
@@ -700,7 +591,6 @@ with tabs[5]:
         leakage_badge_block = f'<div style="margin-bottom:10px;">{badge_html}</div>'
     else:
         leakage_badge_block = ""
-
     leakage_border = "#ff5572" if suspects else "#22d3a0"
     col_c.markdown(f"""
     <div style="background:#13141f; border:1px solid #1e2035; border-left:3px solid {leakage_border};
@@ -711,20 +601,15 @@ with tabs[5]:
       <div style="font-size:13.5px; color:#dde1f0; line-height:1.75;">{report.get("leakage", "—")}</div>
     </div>
     """, unsafe_allow_html=True)
-
     action_raw = report.get("action_plan", "—")
-    # LLM may return a list of alternating [num, text, num, text] or plain strings
     if isinstance(action_raw, list):
-        # Filter out bare numbers, keep only string items
         step_texts = [str(item) for item in action_raw if not isinstance(item, (int, float))]
-        # If filtering left nothing, stringify everything non-numeric
         if not step_texts:
             step_texts = [str(item) for item in action_raw]
     elif isinstance(action_raw, str):
         step_texts = [l.strip() for l in action_raw.strip().splitlines() if l.strip()]
     else:
         step_texts = [str(action_raw)]
-
     steps_html = "".join(
         f'<div style="display:flex; gap:10px; margin-bottom:12px; align-items:flex-start;">'
         f'<span style="font-family:IBM Plex Mono,monospace; font-size:10px; font-weight:700; '
@@ -735,7 +620,6 @@ with tabs[5]:
         f'</div>'
         for i, text in enumerate(step_texts)
     )
-
     col_d.markdown(f"""
     <div style="background:#13141f; border:1px solid #1e2035; border-left:3px solid #b87fff;
                 border-radius:12px; padding:20px 22px; margin-bottom:18px;">
@@ -744,37 +628,29 @@ with tabs[5]:
       {steps_html}
     </div>
     """, unsafe_allow_html=True)
-
     if st.button("↺ Regenerate Report", key="regen_report"):
         if report_cache_key in st.session_state:
             del st.session_state[report_cache_key]
         st.rerun()
-
     st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
-
     st.markdown("""
     <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:700;
                 color:#fff; letter-spacing:0.5px; margin-bottom:16px;">
       ✦ Ask the Analyst
     </div>
     """, unsafe_allow_html=True)
-
     chat_key = f"ai_chat_{uploaded.name}"
     if chat_key not in st.session_state:
         st.session_state[chat_key] = []
-
-    # Render full history with native chat_message (no rerender flicker)
     for msg in st.session_state[chat_key]:
         with st.chat_message("user" if msg["role"] == "user" else "assistant"):
             st.markdown(msg["content"])
 
     question = st.chat_input("Ask anything about this dataset…")
     if question:
-        # Append + immediately render user bubble
         st.session_state[chat_key].append({"role": "user", "content": question})
         with st.chat_message("user"):
             st.markdown(question)
-
         history_for_api = st.session_state[chat_key][-6:]
         system = (
             "You are a senior ML engineer. The user is asking follow-up questions about their dataset.\n"
@@ -787,7 +663,6 @@ with tabs[5]:
         messages = [{"role": "system", "content": system}]
         messages.extend(history_for_api[:-1])
         messages.append({"role": "user", "content": question})
-
         try:
             with st.chat_message("assistant"):
                 answer = st.write_stream(stream_groq(groq_key, messages))
@@ -797,12 +672,10 @@ with tabs[5]:
             st.session_state[chat_key].append({"role": "assistant", "content": err})
             with st.chat_message("assistant"):
                 st.error(err)
-
     if st.session_state.get(chat_key):
         if st.button("✕ Clear chat", key="clear_chat"):
             st.session_state[chat_key] = []
             st.rerun()
-
 with st.sidebar:
     st.markdown("### ⌗ AutoEDA Pro")
     st.markdown("---")
@@ -813,7 +686,6 @@ with st.sidebar:
         pass
     if not groq_sidebar_key:
         groq_sidebar_key = st.session_state.get("groq_api_key", "")
-
     if groq_sidebar_key:
         st.markdown(
             "<div style='font-family:IBM Plex Mono,monospace;font-size:11px;"
@@ -829,11 +701,8 @@ with st.sidebar:
             "color:#5a5f7a;margin-bottom:4px;'>○ Groq key not set — see AI Insights tab</div>",
             unsafe_allow_html=True
         )
-
     st.markdown("---")
-
     st.markdown("**Export Report**")
-
     if st.button("📄 Click to Generate PDF Report"):
         with st.spinner("Generating PDF…"):
             pdf_bytes = generate_pdf_report(
@@ -842,23 +711,18 @@ with st.sidebar:
                 ml_result,
                 uploaded.name
             )
-
         st.download_button(
             label="⬇ Download",
             data=pdf_bytes,
             file_name=f"autoeda_{uploaded.name.replace('.csv','')}.pdf",
             mime="application/pdf"
         )
-
     st.markdown("---")
-
     st.markdown(f"**File:** {uploaded.name}")
     st.markdown(f"**Rows:** {len(df):,}")
     st.markdown(f"**Columns:** {len(df.columns)}")
-
     if ml_result:
         st.markdown(f"**Best Model:** {ml_result['best_model']}")
-    
     st.markdown("""
     ---
     <div style='text-align:center;color:#5a5f7a;font-size:12px'>
